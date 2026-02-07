@@ -150,6 +150,7 @@ let totalMistakes = 0;
 let credibility = 100;
 let gameOver = false;
 let currentPriceMap = null;
+let currentPriceStatus = "ok";
 let phoneScanComplete = false;
 
 function buildCards(count, rules) {
@@ -327,16 +328,21 @@ function openComputer(siteSeries) {
   const siteLabel = `${siteSeries}系列查价网站`;
   computerSeries.textContent = siteLabel;
   computerQuery.textContent = `${siteSeries}网站 · ${card.name} · 品相 = 价格`;
-  currentPriceMap = getGradePrices(card, siteSeries);
+  currentPriceStatus = getPriceStatus(card, siteSeries);
+  currentPriceMap = currentPriceStatus === "ok" ? getGradePrices(card) : null;
   updatePriceDisplay();
   priceGradeSelect.value = "A";
   updateSelectedPrice();
   updateGiveUpButtons();
 }
 
-function getGradePrices(card, siteSeries = card.series) {
-  if (card.series === "C") return null;
-  if (siteSeries && card.series !== siteSeries) return null;
+function getPriceStatus(card, siteSeries) {
+  if (card.series === "C") return "unavailable";
+  if (siteSeries && card.series !== siteSeries) return "mismatch";
+  return "ok";
+}
+
+function getGradePrices(card) {
   return {
     A: Math.round(card.basePrice * gradeMultiplier("A")),
     B: Math.round(card.basePrice * gradeMultiplier("B")),
@@ -411,17 +417,11 @@ function formatGradeLabel(card) {
 function runPhoneScan() {
   const card = cards[currentIndex];
   const decision = decisions[currentIndex] || {};
-  const isUnbuyable = card.series === "C" && card.grade !== "FAKE";
   if (card.grade === "FAKE") {
     decision.grade = "假卡";
     decision.auth = "假卡";
     decision.actualGrade = "FAKE";
     decision.price = 0;
-  } else if (isUnbuyable) {
-    decision.giveUp = true;
-    decision.price = 0;
-    decision.grade = "放弃";
-    decision.auth = "放弃";
   } else {
     decision.grade = `${card.grade} 品`;
     decision.auth = "真卡";
@@ -430,7 +430,7 @@ function runPhoneScan() {
   }
   decisions[currentIndex] = decision;
   updateDecisionUI();
-  const priceLabel = isUnbuyable ? "查不到" : `${actualMarketPrice(card)}`;
+  const priceLabel = `${actualMarketPrice(card)}`;
   phoneAiStatus.textContent = "AI 识别完成";
   phoneAiResult.textContent = `AI 搜图识别：${card.name} · 品相 ${formatGradeLabel(card)} · 价格 ${priceLabel}`;
   phoneActionBtn.textContent = "一键上架";
@@ -599,8 +599,27 @@ function giveUpCard() {
 
 function updateGiveUpButtons() {
   const computerVisible = !computerPanel.classList.contains("hidden");
-  const unavailable = !currentPriceMap;
-  giveUpBtn.classList.toggle("hidden", !unavailable || !computerVisible);
+  const unavailable = currentPriceStatus !== "ok";
+  if (!computerVisible || !unavailable) {
+    giveUpBtn.classList.add("hidden");
+    return;
+  }
+  giveUpBtn.classList.remove("hidden");
+  if (currentPriceStatus === "mismatch") {
+    giveUpBtn.textContent = "换个网站试试";
+  } else {
+    giveUpBtn.textContent = "放弃买取";
+  }
+}
+
+function handlePriceFallback() {
+  if (currentPriceStatus === "mismatch") {
+    closeOverlay();
+    return;
+  }
+  if (currentPriceStatus === "unavailable") {
+    giveUpCard();
+  }
 }
 
 function updateStatsDisplay() {
@@ -633,7 +652,7 @@ priceGradeSelect.addEventListener("change", updateSelectedPrice);
 nextCardBtn.addEventListener("click", completeCard);
 nextDayBtn.addEventListener("click", nextDay);
 returnFakeBtn.addEventListener("click", returnFakeCard);
-giveUpBtn.addEventListener("click", giveUpCard);
+giveUpBtn.addEventListener("click", handlePriceFallback);
 phoneActionBtn.addEventListener("click", handlePhoneAction);
 tipCloseBtn.addEventListener("click", closeDayTip);
 overlay.addEventListener("click", (event) => {
