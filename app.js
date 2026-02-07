@@ -62,8 +62,8 @@ const gradeButtons = Array.from(document.querySelectorAll(".grade-btn"));
 
 const dayConfigs = [
   {
-    tip: "先从 X 系列开始熟悉流程。",
-    goal: "今日目标：完成 5 张 X 系列卡的买取",
+    tip: "先从 破壳梦（Pokemeng） 开始熟悉流程。",
+    goal: "今日目标：完成 5 张 破壳梦 卡的买取",
     cards: () => buildCards(5, { series: ["X"], grades: ["A"] }),
   },
   {
@@ -72,8 +72,8 @@ const dayConfigs = [
     cards: () => buildCards(6, { series: ["X"], grades: ["A", "B"] }),
   },
   {
-    tip: "X、Y 系列要去不同网站查价。",
-    goal: "今日目标：开始处理 Y 系列卡",
+    tip: "破壳梦、游戏神要去不同网站查价。",
+    goal: "今日目标：开始处理 游戏神 卡",
     cards: () => buildCards(7, { series: ["X", "Y"], grades: ["A", "B"] }),
   },
   {
@@ -87,7 +87,7 @@ const dayConfigs = [
     cards: () => buildCards(8, { series: ["X", "Y"], grades: ["A", "B", "C"], fakeCount: 1 }),
   },
   {
-    tip: "有些 Z 系列查不到价格，需要果断放弃。",
+    tip: "有些 智慧牌 查不到价格，需要果断放弃。",
     goal: "今日目标：面对无法查价的卡",
     cards: () => buildDaySixCards(),
   },
@@ -99,32 +99,54 @@ const dayConfigs = [
 ];
 
 const seriesNames = {
-  X: "X 系列",
-  Y: "Y 系列",
-  Z: "Z 系列",
+  X: "破壳梦（Pokemeng）",
+  Y: "游戏神（yu-gi-shen）",
+  Z: "智慧牌（WTG）",
 };
 
 const seriesStyles = {
   X: {
-    label: "宝可梦卡牌",
-    short: "X 系",
-    names: ["炽焰绒狐", "电光迅蜥", "潮汐泡泡鲸", "晨露芽灵", "流星软泥"],
-    arts: ["ember", "sprout", "wave"],
-    back: "X 系列背面",
+    label: "破壳梦卡牌",
+    short: "破壳梦",
+    names: [
+      "炽焰绒狐",
+      "电光迅蜥",
+      "潮汐泡泡鲸",
+      "晨露芽灵",
+      "流星软泥",
+      "霞光翼狸",
+      "薄雾角角兽",
+      "灼日小火雀",
+      "泉歌海獭",
+      "晶壳铃鹿",
+    ],
+    arts: ["ember", "sprout", "wave", "flare", "spark", "nova"],
+    back: "破壳梦背面",
   },
   Y: {
-    label: "游戏王",
-    short: "Y 系",
-    names: ["暗影剑羽龙", "魔导时轨师", "雷铸圣狮", "星界守门魔", "荒漠巨蝎"],
-    arts: ["blade", "sigil", "drake"],
-    back: "Y 系列背面",
+    label: "游戏神",
+    short: "游戏神",
+    names: [
+      "暗影剑羽龙",
+      "魔导时轨师",
+      "雷铸圣狮",
+      "星界守门魔",
+      "荒漠巨蝎",
+      "冥焰咒刃",
+      "秘誓双生狼",
+      "电幕符灵",
+      "苍穹影舞者",
+      "霜砂巨刺兽",
+    ],
+    arts: ["blade", "sigil", "drake", "glyph", "talon", "ward"],
+    back: "游戏神背面",
   },
   Z: {
-    label: "万智牌",
-    short: "Z 系",
+    label: "智慧牌",
+    short: "智慧牌",
     names: ["暮光藤蔓贤者", "秘术星穹灵", "远古石炉像", "月影潮汐术", "烈风群岛龙"],
     arts: ["golem", "mystic", "wyrm"],
-    back: "Z 系列背面",
+    back: "智慧牌背面",
   },
 };
 
@@ -307,7 +329,7 @@ function setupDay() {
   dayTargetIncome = calculateTargetIncome(cards);
   dayNumber.textContent = currentDay + 1;
   dayGoal.textContent = config.goal;
-  dayTip.textContent = `${config.tip}（点击卡片即可翻面）`;
+  dayTip.textContent = config.tip;
   cardProgress.textContent = `0/${cards.length}`;
   dayTotalIncome = 0;
   dayTotalLoss = 0;
@@ -412,9 +434,10 @@ function openComputer(siteSeries) {
   overlay.classList.remove("hidden");
   computerPanel.classList.remove("hidden");
   phonePanel.classList.add("hidden");
-  const siteLabel = `${siteSeries}系列查价网站`;
+  const siteName = seriesNames[siteSeries] ?? siteSeries;
+  const siteLabel = `${siteName}查价网站`;
   computerSeries.textContent = siteLabel;
-  computerQuery.textContent = `${siteSeries}网站 · ${card.name} · 品相 = 价格`;
+  computerQuery.textContent = `${siteName}网站 · ${card.name} · 品相 = 价格`;
   currentPriceStatus = getPriceStatus(card, siteSeries);
   currentPriceMap = currentPriceStatus === "ok" ? getGradePrices(card) : null;
   updatePriceDisplay();
@@ -600,7 +623,7 @@ function completeCard() {
     dayTotalLoss += outcome.loss;
     totalLoss += outcome.loss;
     if (card.series === "Z" && card.grade !== "FAKE") {
-      if (applyCredibilityPenalty(5, "Z 系列无法收购")) {
+      if (applyCredibilityPenalty(5, "智慧牌无法收购")) {
         return;
       }
     }
@@ -628,7 +651,7 @@ function finishDay() {
     summaryBody.textContent += `\n今日失误：看错了 ${dayGradeMistakes} 张卡的品相，算错了 ${dayPriceMistakes} 张卡的价格，亏损 ${dayTotalLoss} 元，顾客对牌店的信任下降了 ${credibilityLoss} 点。`;
   }
   if (currentDay === 5) {
-    summaryBody.textContent += "\n要是有地方能查到 Z 系列的价格就好了……";
+    summaryBody.textContent += "\n要是有地方能查到 智慧牌 的价格就好了……";
   }
   if (currentDay === 6) {
     const report = buildEfficiencyReport();
