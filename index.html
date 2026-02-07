@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="zh-Hans">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>牌店买取狂人</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main id="app">
+      <section id="title-screen" class="screen active">
+        <div class="pixel-panel title-panel">
+          <p class="subtitle">像素牌店模拟</p>
+          <h1>牌店买取狂人</h1>
+          <button id="start-btn" class="pixel-button">开始游戏</button>
+        </div>
+      </section>
+
+      <section id="game-screen" class="screen">
+        <header class="game-header">
+          <div>
+            <h2>第 <span id="day-number">1</span> 天</h2>
+            <p id="day-goal">今日目标：完成买取并贴价</p>
+          </div>
+          <div class="stats">
+            <div>进度：<span id="card-progress">0/0</span></div>
+            <div>今日收益：<span id="day-income">0</span></div>
+          </div>
+        </header>
+
+        <div class="desk">
+          <aside class="tool-column">
+            <div class="pixel-panel tool-panel">
+              <h3>工具</h3>
+              <button id="flip-btn" class="pixel-button">翻面查看</button>
+              <div class="grade-group">
+                <p>判定品相</p>
+                <div class="grade-buttons">
+                  <button class="pixel-button grade-btn" data-grade="A">A 品</button>
+                  <button class="pixel-button grade-btn" data-grade="B">B 品</button>
+                  <button class="pixel-button grade-btn" data-grade="C">C 品</button>
+                  <button class="pixel-button grade-btn" data-grade="FAKE">假卡</button>
+                </div>
+              </div>
+              <button id="price-btn" class="pixel-button">查价电脑</button>
+              <button id="phone-btn" class="pixel-button">JHS 手机</button>
+            </div>
+
+            <div class="pixel-panel sample-panel">
+              <h3>品相范例</h3>
+              <ul>
+                <li>A：完美无伤</li>
+                <li>B：轻微边缘白</li>
+                <li>C：折痕/损伤</li>
+                <li>假卡：背面色差</li>
+              </ul>
+            </div>
+          </aside>
+
+          <section class="card-area">
+            <div class="basket">
+              <span class="basket-label">今日买取小筐</span>
+            </div>
+            <div id="card" class="card front">
+              <div class="card-face card-front">
+                <div class="card-top">
+                  <span id="card-series">A 系列</span>
+                  <span id="card-rarity">★</span>
+                </div>
+                <div class="card-art">像素卡图</div>
+                <div class="card-name" id="card-name">卡名</div>
+              </div>
+              <div class="card-face card-back">
+                <p>背面纹理</p>
+                <p id="card-wear">边缘状态</p>
+              </div>
+              <div class="flip-hint">点击翻面</div>
+            </div>
+
+            <div class="pixel-panel decision-panel">
+              <div>
+                <span>真假：</span><span id="decision-auth">未判定</span>
+              </div>
+              <div>
+                <span>品相：</span><span id="decision-grade">未判定</span>
+              </div>
+              <div>
+                <span>定价：</span><span id="decision-price">未定价</span>
+              </div>
+              <button id="next-card-btn" class="pixel-button">确认进入下一张</button>
+            </div>
+          </section>
+
+          <aside class="tool-column">
+            <div class="pixel-panel note-panel">
+              <h3>今日提示</h3>
+              <p id="day-tip">先从 A 系列开始熟悉流程。</p>
+            </div>
+            <div class="pixel-panel checklist-panel">
+              <h3>流程</h3>
+              <ol>
+                <li>翻面观察</li>
+                <li>真假 + 品相</li>
+                <li>查价定价</li>
+              </ol>
+            </div>
+          </aside>
+        </div>
+      </section>
+
+      <section id="summary-screen" class="screen">
+        <div class="pixel-panel summary-panel">
+          <h2 id="summary-title">今日结算</h2>
+          <p id="summary-body">你完成了今日任务。</p>
+          <button id="next-day-btn" class="pixel-button">进入下一天</button>
+        </div>
+      </section>
+
+      <div id="overlay" class="overlay hidden">
+        <div id="computer" class="pixel-panel overlay-panel hidden">
+          <h3>查价电脑</h3>
+          <p id="computer-series">请选择卡片系列</p>
+          <div class="price-box">
+            <p>市场价：<span id="market-price">--</span></p>
+            <label>
+              给出定价
+              <input id="price-input" type="number" min="0" step="1" />
+            </label>
+            <button id="confirm-price" class="pixel-button">确认定价</button>
+          </div>
+        </div>
+
+        <div id="phone" class="pixel-panel overlay-panel hidden">
+          <h3>JHS APP</h3>
+          <p>拍照查卡，一键生成价格</p>
+          <button id="photo-btn" class="pixel-button">咔嚓一下</button>
+          <div class="photo-result">
+            <p>识别结果：<span id="photo-name">--</span></p>
+            <p>参考价：<span id="photo-price">--</span></p>
+          </div>
+          <ul id="photo-log" class="photo-log"></ul>
+          <button id="finish-day7" class="pixel-button">一键上架</button>
+        </div>
+      </div>
+    </main>
+
+    <script src="app.js"></script>
+  </body>
+</html>
