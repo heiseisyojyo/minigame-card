@@ -425,13 +425,13 @@ main {
   padding: 2px 6px;
 }
 
-.card[data-series="A"] .art-bg,
-.phone-card[data-series="A"] .art-bg {
+.card[data-series="X"] .art-bg,
+.phone-card[data-series="X"] .art-bg {
   background: linear-gradient(135deg, #fde3b0, #f6b37b);
 }
 
-.card[data-series="A"] .art-sprite,
-.phone-card[data-series="A"] .art-sprite {
+.card[data-series="X"] .art-sprite,
+.phone-card[data-series="X"] .art-sprite {
   background: #fffdf7;
   box-shadow:
     0 0 0 4px rgba(212, 137, 54, 0.2),
@@ -443,13 +443,13 @@ main {
     -12px 12px 0 0 rgba(212, 137, 54, 0.2);
 }
 
-.card[data-series="B"] .art-bg,
-.phone-card[data-series="B"] .art-bg {
+.card[data-series="Y"] .art-bg,
+.phone-card[data-series="Y"] .art-bg {
   background: linear-gradient(135deg, #cfe8ff, #8ec3ff);
 }
 
-.card[data-series="B"] .art-sprite,
-.phone-card[data-series="B"] .art-sprite {
+.card[data-series="Y"] .art-sprite,
+.phone-card[data-series="Y"] .art-sprite {
   background: #f2f7ff;
   box-shadow:
     0 0 0 4px rgba(69, 118, 199, 0.25),
@@ -461,13 +461,13 @@ main {
     -12px 12px 0 0 rgba(69, 118, 199, 0.25);
 }
 
-.card[data-series="C"] .art-bg,
-.phone-card[data-series="C"] .art-bg {
+.card[data-series="Z"] .art-bg,
+.phone-card[data-series="Z"] .art-bg {
   background: linear-gradient(135deg, #e6d5ff, #bda5ff);
 }
 
-.card[data-series="C"] .art-sprite,
-.phone-card[data-series="C"] .art-sprite {
+.card[data-series="Z"] .art-sprite,
+.phone-card[data-series="Z"] .art-sprite {
   background: #fbf7ff;
   box-shadow:
     0 0 0 4px rgba(128, 91, 187, 0.25),
@@ -553,27 +553,27 @@ main {
   z-index: 2;
 }
 
-.card[data-series="A"] .card-back-art {
+.card[data-series="X"] .card-back-art {
   background: #fde3b0;
 }
 
-.card[data-series="A"] .back-emblem {
+.card[data-series="X"] .back-emblem {
   background: radial-gradient(circle at 30% 30%, #fff1d8, #f1b977);
 }
 
-.card[data-series="B"] .card-back-art {
+.card[data-series="Y"] .card-back-art {
   background: #dfeaff;
 }
 
-.card[data-series="B"] .back-emblem {
+.card[data-series="Y"] .back-emblem {
   background: radial-gradient(circle at 30% 30%, #eaf2ff, #8fb2f2);
 }
 
-.card[data-series="C"] .card-back-art {
+.card[data-series="Z"] .card-back-art {
   background: #ece1ff;
 }
 
-.card[data-series="C"] .back-emblem {
+.card[data-series="Z"] .back-emblem {
   background: radial-gradient(circle at 30% 30%, #f6efff, #b095ef);
 }
 

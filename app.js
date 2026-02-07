@@ -63,69 +63,69 @@ const gradeButtons = Array.from(document.querySelectorAll(".grade-btn"));
 
 const dayConfigs = [
   {
-    tip: "先从 A 系列开始熟悉流程。",
-    goal: "今日目标：完成 5 张 A 系列卡的买取",
-    cards: () => buildCards(5, { series: ["A"], grades: ["A"] }),
+    tip: "先从 X 系列开始熟悉流程。",
+    goal: "今日目标：完成 5 张 X 系列卡的买取",
+    cards: () => buildCards(5, { series: ["X"], grades: ["A"] }),
   },
   {
     tip: "出现轻微瑕疵，记得对照范例卡。",
     goal: "今日目标：加入 B 品相的判断",
-    cards: () => buildCards(6, { series: ["A"], grades: ["A", "B"] }),
+    cards: () => buildCards(6, { series: ["X"], grades: ["A", "B"] }),
   },
   {
-    tip: "A、B 系列要去不同网站查价。",
-    goal: "今日目标：开始处理 B 系列卡",
-    cards: () => buildCards(7, { series: ["A", "B"], grades: ["A", "B"] }),
+    tip: "X、Y 系列要去不同网站查价。",
+    goal: "今日目标：开始处理 Y 系列卡",
+    cards: () => buildCards(7, { series: ["X", "Y"], grades: ["A", "B"] }),
   },
   {
     tip: "C 品相出现了，注意折痕与损伤。",
     goal: "今日目标：加入 C 品相",
-    cards: () => buildCards(8, { series: ["A", "B"], grades: ["A", "B", "C"] }),
+    cards: () => buildCards(8, { series: ["X", "Y"], grades: ["A", "B", "C"] }),
   },
   {
     tip: "小心假卡！背面色调会不一样。",
     goal: "今日目标：辨别假卡",
-    cards: () => buildCards(8, { series: ["A", "B"], grades: ["A", "B", "C"], fakeCount: 1 }),
+    cards: () => buildCards(8, { series: ["X", "Y"], grades: ["A", "B", "C"], fakeCount: 1 }),
   },
   {
-    tip: "有些 C 系列查不到价格，需要果断放弃。",
+    tip: "有些 Z 系列查不到价格，需要果断放弃。",
     goal: "今日目标：面对无法查价的卡",
     cards: () => buildDaySixCards(),
   },
   {
     tip: "JHS APP 上线！今天可以轻松搞定。",
     goal: "今日目标：使用 JHS APP 一键拍照查卡",
-    cards: () => buildCards(20, { series: ["A", "B", "C"], grades: ["A", "B", "C"], fakeCount: 0 }),
+    cards: () => buildCards(20, { series: ["X", "Y", "Z"], grades: ["A", "B", "C"], fakeCount: 0 }),
   },
 ];
 
 const seriesNames = {
-  A: "A 系列",
-  B: "B 系列",
-  C: "C 系列",
+  X: "X 系列",
+  Y: "Y 系列",
+  Z: "Z 系列",
 };
 
 const seriesStyles = {
-  A: {
+  X: {
     label: "宝可梦卡牌",
-    short: "A 系",
+    short: "X 系",
     names: ["炽焰绒狐", "电光迅蜥", "潮汐泡泡鲸", "晨露芽灵", "流星软泥"],
     arts: ["ember", "sprout", "wave"],
-    back: "A 系列背面",
+    back: "X 系列背面",
   },
-  B: {
+  Y: {
     label: "游戏王",
-    short: "B 系",
+    short: "Y 系",
     names: ["暗影剑羽龙", "魔导时轨师", "雷铸圣狮", "星界守门魔", "荒漠巨蝎"],
     arts: ["blade", "sigil", "drake"],
-    back: "B 系列背面",
+    back: "Y 系列背面",
   },
-  C: {
+  Z: {
     label: "万智牌",
-    short: "C 系",
+    short: "Z 系",
     names: ["暮光藤蔓贤者", "秘术星穹灵", "远古石炉像", "月影潮汐术", "烈风群岛龙"],
     arts: ["golem", "mystic", "wyrm"],
-    back: "C 系列背面",
+    back: "Z 系列背面",
   },
 };
 
@@ -267,9 +267,9 @@ function pickWeightedGrade(grades) {
 }
 
 function buildDaySixCards() {
-  const cCards = buildCards(2, { series: ["C"], grades: ["A", "B", "C"] });
+  const cCards = buildCards(2, { series: ["Z"], grades: ["A", "B", "C"] });
   const abCards = buildCards(8, {
-    series: ["A", "B"],
+    series: ["X", "Y"],
     grades: ["A", "B", "C"],
     fakeCount: 1,
   });
@@ -419,7 +419,7 @@ function openComputer(siteSeries) {
 }
 
 function getPriceStatus(card, siteSeries) {
-  if (card.series === "C") return "unavailable";
+  if (card.series === "Z") return "unavailable";
   if (siteSeries && card.series !== siteSeries) return "mismatch";
   return "ok";
 }
@@ -565,6 +565,12 @@ function completeCard() {
     triggerGameOver("假卡入库，游戏结束", "你误买了假卡，卡店可信度扣光。");
     return;
   }
+  if (!card.isFake && decision.actualGrade === "FAKE") {
+    credibility = Math.max(0, credibility - 100);
+    updateStatsDisplay();
+    triggerGameOver("信任危机，游戏结束", "你把客人的卡当成假卡，在SNS上炎上了……");
+    return;
+  }
   if (!decision.giveUp) {
     const outcome = evaluateDecision(card, decision);
     dayTotalIncome += outcome.income;
@@ -582,8 +588,8 @@ function completeCard() {
     const outcome = evaluateGiveUp(card);
     dayTotalLoss += outcome.loss;
     totalLoss += outcome.loss;
-    if (card.series === "C" && card.grade !== "FAKE") {
-      if (applyCredibilityPenalty(5, "C 系列无法收购")) {
+    if (card.series === "Z" && card.grade !== "FAKE") {
+      if (applyCredibilityPenalty(5, "Z 系列无法收购")) {
         return;
       }
     }
@@ -607,7 +613,7 @@ function finishDay() {
   summaryTitle.textContent = `第 ${currentDay + 1} 天结算`;
   summaryBody.textContent = `今日估价 ${dayTotalIncome} ，系统目标 ${dayTargetIncome} ，差距 ${diff}。`;
   if (currentDay === 5) {
-    summaryBody.textContent += "\n要是有地方能查到 C 系列的价格就好了……";
+    summaryBody.textContent += "\n要是有地方能查到 Z 系列的价格就好了……";
   }
   if (currentDay === 6) {
     const report = buildEfficiencyReport();
@@ -775,8 +781,8 @@ function closeDayTip() {
 startBtn.addEventListener("click", startGame);
 cardEl.addEventListener("click", flipCard);
 flipBtn.addEventListener("click", flipCard);
-priceABtn.addEventListener("click", () => openComputer("A"));
-priceBBtn.addEventListener("click", () => openComputer("B"));
+priceABtn.addEventListener("click", () => openComputer("X"));
+priceBBtn.addEventListener("click", () => openComputer("Y"));
 phoneBtn.addEventListener("click", openPhone);
 confirmPriceBtn.addEventListener("click", confirmPrice);
 priceGradeSelect.addEventListener("change", updateSelectedPrice);
