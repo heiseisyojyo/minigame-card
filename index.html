@@ -100,6 +100,7 @@
               <div>
                 <span>定价：</span><span id="decision-price">未定价</span>
               </div>
+              <button id="return-fake-btn" class="pixel-button hidden">退回假卡</button>
               <button id="next-card-btn" class="pixel-button">确认进入下一张</button>
             </div>
           </section>
@@ -133,26 +134,55 @@
         <div id="computer" class="pixel-panel overlay-panel hidden">
           <h3>查价电脑</h3>
           <p id="computer-series">请选择卡片系列</p>
+          <p id="computer-query">--</p>
           <div class="price-box">
-            <p>市场价：<span id="market-price">--</span></p>
+            <div class="price-grid">
+              <div>A 品：<span id="price-a">--</span></div>
+              <div>B 品：<span id="price-b">--</span></div>
+              <div>C 品：<span id="price-c">--</span></div>
+            </div>
             <label>
-              给出定价
-              <input id="price-input" type="number" min="0" step="1" />
+              选择品相
+              <select id="price-grade-select">
+                <option value="A">A 品</option>
+                <option value="B">B 品</option>
+                <option value="C">C 品</option>
+              </select>
             </label>
+            <p>选中价格：<span id="market-price">--</span></p>
             <button id="confirm-price" class="pixel-button">确认定价</button>
           </div>
         </div>
 
         <div id="phone" class="pixel-panel overlay-panel hidden">
-          <h3>JHS APP</h3>
-          <p>拍照查卡，一键生成价格</p>
-          <button id="photo-btn" class="pixel-button">咔嚓一下</button>
-          <div class="photo-result">
-            <p>识别结果：<span id="photo-name">--</span></p>
-            <p>参考价：<span id="photo-price">--</span></p>
+          <h3>JHS APP 体验模式</h3>
+          <p>拍照框内展示卡图与参考价格</p>
+          <div class="phone-frame">
+            <div class="phone-screen">
+              <div id="phone-card" class="phone-card" data-series="A" data-art="ember">
+                <div class="phone-card-top">
+                  <span id="phone-card-series">A 系</span>
+                  <span id="phone-card-grade">A</span>
+                </div>
+                <div class="phone-card-art">
+                  <div class="art-frame">
+                    <div class="art-bg"></div>
+                    <div class="art-sprite"></div>
+                    <div class="art-overlay">
+                      <span class="art-series" id="phone-art-series">A 系</span>
+                      <span class="art-grade" id="phone-art-grade">A</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="phone-card-name" id="phone-card-name">卡名</div>
+              </div>
+              <div class="phone-price-summary">
+                <div> A 品：<span id="phone-price-a">--</span></div>
+                <div> B 品：<span id="phone-price-b">--</span></div>
+                <div> C 品：<span id="phone-price-c">--</span></div>
+              </div>
+            </div>
           </div>
-          <ul id="photo-log" class="photo-log"></ul>
-          <button id="finish-day7" class="pixel-button">一键上架</button>
         </div>
       </div>
     </main>

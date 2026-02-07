@@ -17,16 +17,27 @@ const decisionAuth = document.getElementById("decision-auth");
 const decisionGrade = document.getElementById("decision-grade");
 const decisionPrice = document.getElementById("decision-price");
 const marketPrice = document.getElementById("market-price");
-const priceInput = document.getElementById("price-input");
 const computerSeries = document.getElementById("computer-series");
-const photoName = document.getElementById("photo-name");
-const photoPrice = document.getElementById("photo-price");
-const photoLog = document.getElementById("photo-log");
+const computerQuery = document.getElementById("computer-query");
+const priceGradeSelect = document.getElementById("price-grade-select");
+const priceA = document.getElementById("price-a");
+const priceB = document.getElementById("price-b");
+const priceC = document.getElementById("price-c");
+const returnFakeBtn = document.getElementById("return-fake-btn");
 const summaryTitle = document.getElementById("summary-title");
 const summaryBody = document.getElementById("summary-body");
 const overlay = document.getElementById("overlay");
 const computerPanel = document.getElementById("computer");
 const phonePanel = document.getElementById("phone");
+const phoneCard = document.getElementById("phone-card");
+const phoneCardSeries = document.getElementById("phone-card-series");
+const phoneCardGrade = document.getElementById("phone-card-grade");
+const phoneCardName = document.getElementById("phone-card-name");
+const phoneArtSeries = document.getElementById("phone-art-series");
+const phoneArtGrade = document.getElementById("phone-art-grade");
+const phonePriceA = document.getElementById("phone-price-a");
+const phonePriceB = document.getElementById("phone-price-b");
+const phonePriceC = document.getElementById("phone-price-c");
 
 const startBtn = document.getElementById("start-btn");
 const flipBtn = document.getElementById("flip-btn");
@@ -34,8 +45,6 @@ const priceBtn = document.getElementById("price-btn");
 const phoneBtn = document.getElementById("phone-btn");
 const nextCardBtn = document.getElementById("next-card-btn");
 const confirmPriceBtn = document.getElementById("confirm-price");
-const photoBtn = document.getElementById("photo-btn");
-const finishDay7Btn = document.getElementById("finish-day7");
 const nextDayBtn = document.getElementById("next-day-btn");
 
 const gradeButtons = Array.from(document.querySelectorAll(".grade-btn"));
@@ -64,17 +73,17 @@ const dayConfigs = [
   {
     tip: "小心假卡！背面色调会不一样。",
     goal: "今日目标：辨别假卡",
-    cards: () => buildCards(8, { series: ["A", "B"], grades: ["A", "B", "C"], includeFake: true }),
+    cards: () => buildCards(8, { series: ["A", "B"], grades: ["A", "B", "C"], fakeCount: 1 }),
   },
   {
     tip: "有些 C 系列查不到价格，需要果断放弃。",
     goal: "今日目标：面对无法查价的卡",
-    cards: () => buildCards(10, { series: ["A", "B", "C"], grades: ["A", "B", "C"], includeFake: true }),
+    cards: () => buildCards(10, { series: ["A", "B", "C"], grades: ["A", "B", "C"], fakeCount: 1 }),
   },
   {
     tip: "JHS APP 上线！今天可以轻松搞定。",
     goal: "今日目标：使用 JHS APP 一键拍照查卡",
-    cards: () => buildCards(8, { series: ["A", "B", "C"], grades: ["A", "B", "C"], includeFake: false }),
+    cards: () => buildCards(8, { series: ["A", "B", "C"], grades: ["A", "B", "C"], fakeCount: 0 }),
   },
 ];
 
@@ -124,13 +133,20 @@ let decisions = [];
 let flipping = false;
 let dayTotalIncome = 0;
 let dayTargetIncome = 0;
+let gameOver = false;
+let currentPriceMap = null;
 
 function buildCards(count, rules) {
   const cardsList = [];
+  const fakeIndexes = new Set();
+  const targetFakeCount = Math.min(rules.fakeCount ?? 0, count);
+  while (fakeIndexes.size < targetFakeCount) {
+    fakeIndexes.add(Math.floor(Math.random() * count));
+  }
   for (let i = 0; i < count; i += 1) {
     const series = pickRandom(rules.series);
-    const isFake = rules.includeFake && Math.random() < 0.2;
-    const grade = isFake ? "FAKE" : pickRandom(rules.grades);
+    const isFake = fakeIndexes.has(i);
+    const grade = isFake ? "FAKE" : pickWeightedGrade(rules.grades);
     const basePrice = 80 + Math.floor(Math.random() * 120);
     const style = seriesStyles[series];
     cardsList.push({
@@ -150,6 +166,22 @@ function pickRandom(list) {
   return list[Math.floor(Math.random() * list.length)];
 }
 
+function pickWeightedGrade(grades) {
+  const weights = {
+    A: 0.6,
+    B: 0.28,
+    C: 0.12,
+  };
+  const pool = grades.map((grade) => ({ grade, weight: weights[grade] ?? 0.2 }));
+  const total = pool.reduce((sum, item) => sum + item.weight, 0);
+  let roll = Math.random() * total;
+  for (const item of pool) {
+    roll -= item.weight;
+    if (roll <= 0) return item.grade;
+  }
+  return pool[0].grade;
+}
+
 function showScreen(screen) {
   [titleScreen, gameScreen, summaryScreen].forEach((section) => {
     section.classList.toggle("active", section === screen);
@@ -159,6 +191,7 @@ function showScreen(screen) {
 function startGame() {
   currentDay = 0;
   dayTotalIncome = 0;
+  gameOver = false;
   setupDay();
   showScreen(gameScreen);
 }
@@ -220,12 +253,14 @@ function updateDecisionUI() {
   decisionAuth.textContent = decision.auth ?? "未判定";
   decisionGrade.textContent = decision.grade ?? "未判定";
   decisionPrice.textContent = decision.price != null ? `${decision.price}` : "未定价";
+  returnFakeBtn.classList.toggle("hidden", decision.actualGrade !== "FAKE");
 }
 
 function resetDecision() {
   decisionAuth.textContent = "未判定";
   decisionGrade.textContent = "未判定";
   decisionPrice.textContent = "未定价";
+  returnFakeBtn.classList.add("hidden");
 }
 
 function flipCard() {
@@ -243,6 +278,9 @@ function setGrade(grade) {
   decision.grade = grade === "FAKE" ? "假卡" : `${grade} 品`;
   decision.auth = grade === "FAKE" ? "假卡" : "真卡";
   decision.actualGrade = grade;
+  if (grade === "FAKE") {
+    decision.price = 0;
+  }
   decisions[currentIndex] = decision;
   updateDecisionUI();
 }
@@ -256,20 +294,52 @@ function openComputer() {
   overlay.classList.remove("hidden");
   computerPanel.classList.remove("hidden");
   phonePanel.classList.add("hidden");
-  computerSeries.textContent = `${seriesNames[card.series]} 网站`;
-  const price = lookupPrice(card);
-  marketPrice.textContent = price ? `${price}` : "查不到";
-  priceInput.value = "";
+  computerSeries.textContent = `${card.series}网站`;
+  computerQuery.textContent = `${card.series}网站 · ${card.name} · 品相 = 价格`;
+  currentPriceMap = getGradePrices(card);
+  updatePriceDisplay();
+  priceGradeSelect.value = "A";
+  updateSelectedPrice();
 }
 
 function lookupPrice(card) {
   if (card.series === "C") return null;
-  if (card.grade === "FAKE") return 0;
   return Math.round(card.basePrice * gradeMultiplier(card.grade));
 }
 
+function getGradePrices(card) {
+  if (card.series === "C") return null;
+  return {
+    A: Math.round(card.basePrice * gradeMultiplier("A")),
+    B: Math.round(card.basePrice * gradeMultiplier("B")),
+    C: Math.round(card.basePrice * gradeMultiplier("C")),
+  };
+}
+
+function formatPrice(value) {
+  return value == null ? "查不到" : `${value}`;
+}
+
+function updatePriceDisplay() {
+  priceA.textContent = formatPrice(currentPriceMap?.A ?? null);
+  priceB.textContent = formatPrice(currentPriceMap?.B ?? null);
+  priceC.textContent = formatPrice(currentPriceMap?.C ?? null);
+}
+
+function updateSelectedPrice() {
+  if (!currentPriceMap) {
+    marketPrice.textContent = "查不到";
+    return;
+  }
+  const selected = priceGradeSelect.value;
+  const value = currentPriceMap[selected];
+  marketPrice.textContent = formatPrice(value);
+}
+
 function confirmPrice() {
-  const priceValue = Number(priceInput.value);
+  if (!currentPriceMap) return;
+  const selected = priceGradeSelect.value;
+  const priceValue = currentPriceMap[selected];
   if (!Number.isFinite(priceValue)) return;
   const decision = decisions[currentIndex] || {};
   decision.price = priceValue;
@@ -286,6 +356,7 @@ function openPhone() {
   overlay.classList.remove("hidden");
   phonePanel.classList.remove("hidden");
   computerPanel.classList.add("hidden");
+  renderPhonePreview();
 }
 
 function updatePhoneAvailability() {
@@ -294,21 +365,20 @@ function updatePhoneAvailability() {
   phoneBtn.textContent = unlocked ? "JHS 手机" : "JHS 手机（未解锁）";
 }
 
-function photoLookup() {
+function renderPhonePreview() {
   const card = cards[currentIndex];
-  const price = lookupPrice(card) ?? 0;
-  photoName.textContent = card.name;
-  photoPrice.textContent = `${price}`;
-  const logItem = document.createElement("li");
-  logItem.textContent = `${card.name} → ${price}`;
-  photoLog.prepend(logItem);
-  const decision = decisions[currentIndex] || {};
-  decision.price = price;
-  decision.grade = card.grade === "FAKE" ? "假卡" : `${card.grade} 品`;
-  decision.auth = card.grade === "FAKE" ? "假卡" : "真卡";
-  decision.actualGrade = card.grade;
-  decisions[currentIndex] = decision;
-  updateDecisionUI();
+  phoneCard.dataset.series = card.series;
+  phoneCard.dataset.art = card.art;
+  phoneCard.dataset.grade = card.grade;
+  phoneCardSeries.textContent = seriesStyles[card.series].short;
+  phoneCardGrade.textContent = card.grade === "FAKE" ? "假" : card.grade;
+  phoneCardName.textContent = card.name;
+  phoneArtSeries.textContent = seriesStyles[card.series].short;
+  phoneArtGrade.textContent = card.grade === "FAKE" ? "假" : card.grade;
+  const prices = getGradePrices(card);
+  phonePriceA.textContent = formatPrice(prices?.A ?? null);
+  phonePriceB.textContent = formatPrice(prices?.B ?? null);
+  phonePriceC.textContent = formatPrice(prices?.C ?? null);
 }
 
 function closeOverlay() {
@@ -319,8 +389,13 @@ function closeOverlay() {
 
 function completeCard() {
   const decision = decisions[currentIndex];
+  const card = cards[currentIndex];
   if (!decision || decision.price == null || !decision.actualGrade) {
     alert("还没有完成判定或定价。");
+    return;
+  }
+  if (card.isFake && decision.actualGrade !== "FAKE") {
+    triggerGameOver();
     return;
   }
   currentIndex += 1;
@@ -342,6 +417,13 @@ function finishDay() {
   showScreen(summaryScreen);
 }
 
+function triggerGameOver() {
+  gameOver = true;
+  summaryTitle.textContent = "假卡入库，游戏结束";
+  summaryBody.textContent = "你误买了假卡，店铺信誉受损。重新开始吧！";
+  showScreen(summaryScreen);
+}
+
 function calculateIncome(cardList, decisionList) {
   return cardList.reduce((sum, card, index) => {
     const decision = decisionList[index];
@@ -359,6 +441,10 @@ function calculateIncome(cardList, decisionList) {
 }
 
 function nextDay() {
+  if (gameOver) {
+    showScreen(titleScreen);
+    return;
+  }
   if (currentDay < dayConfigs.length - 1) {
     currentDay += 1;
     setupDay();
@@ -368,16 +454,28 @@ function nextDay() {
   }
 }
 
+function returnFakeCard() {
+  const decision = decisions[currentIndex] || {};
+  decision.price = 0;
+  decision.grade = "假卡";
+  decision.auth = "假卡";
+  decision.actualGrade = "FAKE";
+  decision.rejected = true;
+  decisions[currentIndex] = decision;
+  updateDecisionUI();
+  completeCard();
+}
+
 startBtn.addEventListener("click", startGame);
 cardEl.addEventListener("click", flipCard);
 flipBtn.addEventListener("click", flipCard);
 priceBtn.addEventListener("click", openComputer);
 phoneBtn.addEventListener("click", openPhone);
 confirmPriceBtn.addEventListener("click", confirmPrice);
-photoBtn.addEventListener("click", photoLookup);
-finishDay7Btn.addEventListener("click", closeOverlay);
+priceGradeSelect.addEventListener("change", updateSelectedPrice);
 nextCardBtn.addEventListener("click", completeCard);
 nextDayBtn.addEventListener("click", nextDay);
+returnFakeBtn.addEventListener("click", returnFakeCard);
 overlay.addEventListener("click", (event) => {
   if (event.target === overlay) closeOverlay();
 });
