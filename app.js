@@ -12,6 +12,7 @@ const cardName = document.getElementById("card-name");
 const cardWear = document.getElementById("card-wear");
 const cardArtSeries = document.getElementById("card-art-series");
 const cardArtGrade = document.getElementById("card-art-grade");
+const cardBackSeries = document.getElementById("card-back-series");
 const decisionAuth = document.getElementById("decision-auth");
 const decisionGrade = document.getElementById("decision-grade");
 const decisionPrice = document.getElementById("decision-price");
@@ -83,6 +84,30 @@ const seriesNames = {
   C: "C 系列",
 };
 
+const seriesStyles = {
+  A: {
+    label: "宝可梦卡牌",
+    short: "A 系",
+    names: ["炽焰绒狐", "电光迅蜥", "潮汐泡泡鲸", "晨露芽灵", "流星软泥"],
+    arts: ["ember", "sprout", "wave"],
+    back: "A 系列背面",
+  },
+  B: {
+    label: "游戏王",
+    short: "B 系",
+    names: ["暗影剑羽龙", "魔导时轨师", "雷铸圣狮", "星界守门魔", "荒漠巨蝎"],
+    arts: ["blade", "sigil", "drake"],
+    back: "B 系列背面",
+  },
+  C: {
+    label: "万智牌",
+    short: "C 系",
+    names: ["暮光藤蔓贤者", "秘术星穹灵", "远古石炉像", "月影潮汐术", "烈风群岛龙"],
+    arts: ["golem", "mystic", "wyrm"],
+    back: "C 系列背面",
+  },
+};
+
 const gradeWear = {
   A: "边缘完整，无可见问题",
   B: "轻微边缘发白",
@@ -107,12 +132,14 @@ function buildCards(count, rules) {
     const isFake = rules.includeFake && Math.random() < 0.2;
     const grade = isFake ? "FAKE" : pickRandom(rules.grades);
     const basePrice = 80 + Math.floor(Math.random() * 120);
+    const style = seriesStyles[series];
     cardsList.push({
-      name: `${series}牌-${i + 1}`,
+      name: pickRandom(style.names),
       series,
       grade,
       basePrice,
       rarity: pickRandom(rarityIcons),
+      art: pickRandom(style.arts),
       isFake,
     });
   }
@@ -149,6 +176,7 @@ function setupDay() {
   cardProgress.textContent = `0/${cards.length}`;
   dayIncome.textContent = "0";
   resetDecision();
+  updatePhoneAvailability();
   renderCard();
 }
 
@@ -171,14 +199,17 @@ function gradeMultiplier(grade) {
 
 function renderCard() {
   const card = cards[currentIndex];
+  const style = seriesStyles[card.series];
   cardEl.classList.remove("back");
   cardEl.dataset.series = card.series;
   cardEl.dataset.grade = card.grade;
+  cardEl.dataset.art = card.art;
   cardSeries.textContent = seriesNames[card.series];
   cardName.textContent = card.name;
   cardWear.textContent = gradeWear[card.grade];
-  cardArtSeries.textContent = `${card.series} 系`;
+  cardArtSeries.textContent = style.short;
   cardArtGrade.textContent = card.grade === "FAKE" ? "假" : card.grade;
+  cardBackSeries.textContent = style.back;
   document.getElementById("card-rarity").textContent = card.rarity;
   cardProgress.textContent = `${currentIndex + 1}/${cards.length}`;
   updateDecisionUI();
@@ -248,9 +279,19 @@ function confirmPrice() {
 }
 
 function openPhone() {
+  if (currentDay < 6) {
+    alert("JHS 手机还未开通，继续用查价电脑。");
+    return;
+  }
   overlay.classList.remove("hidden");
   phonePanel.classList.remove("hidden");
   computerPanel.classList.add("hidden");
+}
+
+function updatePhoneAvailability() {
+  const unlocked = currentDay >= 6;
+  phoneBtn.disabled = !unlocked;
+  phoneBtn.textContent = unlocked ? "JHS 手机" : "JHS 手机（未解锁）";
 }
 
 function photoLookup() {
