@@ -245,7 +245,8 @@ function buildCards(count, rules) {
   }
   for (let i = 0; i < count; i += 1) {
     const series = pickRandom(rules.series);
-    const isFake = fakeIndexes.has(i);
+    const isFakeCandidate = fakeIndexes.has(i);
+    const isFake = isFakeCandidate && series !== "Z";
     const grade = isFake ? "FAKE" : pickWeightedGrade(rules.grades);
     const basePrice = 80 + Math.floor(Math.random() * 120);
     const style = seriesStyles[series];
