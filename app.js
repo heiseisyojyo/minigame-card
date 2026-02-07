@@ -8,6 +8,8 @@ const mistakeCount = document.getElementById("mistake-count");
 const totalIncomeEl = document.getElementById("total-income");
 const totalLossEl = document.getElementById("total-loss");
 const credibilityScore = document.getElementById("credibility-score");
+const cardTimerEl = document.getElementById("card-timer");
+const totalTimerEl = document.getElementById("total-timer");
 const dayTip = document.getElementById("day-tip");
 const cardEl = document.getElementById("card");
 const cardSeries = document.getElementById("card-series");
@@ -88,12 +90,12 @@ const dayConfigs = [
   {
     tip: "有些 C 系列查不到价格，需要果断放弃。",
     goal: "今日目标：面对无法查价的卡",
-    cards: () => buildCards(10, { series: ["A", "B", "C"], grades: ["A", "B", "C"], fakeCount: 1 }),
+    cards: () => buildDaySixCards(),
   },
   {
     tip: "JHS APP 上线！今天可以轻松搞定。",
     goal: "今日目标：使用 JHS APP 一键拍照查卡",
-    cards: () => buildCards(8, { series: ["A", "B", "C"], grades: ["A", "B", "C"], fakeCount: 0 }),
+    cards: () => buildCards(20, { series: ["A", "B", "C"], grades: ["A", "B", "C"], fakeCount: 0 }),
   },
 ];
 
@@ -152,6 +154,63 @@ let gameOver = false;
 let currentPriceMap = null;
 let currentPriceStatus = "ok";
 let phoneScanComplete = false;
+let dayMistakes = 0;
+let dayElapsedMs = 0;
+let cardStartTime = 0;
+let timerIntervalId = null;
+const dayStats = [];
+
+function roundToTenth(value) {
+  return Math.round(value * 10) / 10;
+}
+
+function formatTimeSeconds(seconds) {
+  return roundToTenth(seconds).toFixed(1);
+}
+
+function getCurrentCardElapsedMs() {
+  return cardStartTime ? performance.now() - cardStartTime : 0;
+}
+
+function updateTimeDisplay() {
+  const cardSeconds = getCurrentCardElapsedMs() / 1000;
+  const totalSeconds = (dayElapsedMs + getCurrentCardElapsedMs()) / 1000;
+  cardTimerEl.textContent = formatTimeSeconds(cardSeconds);
+  totalTimerEl.textContent = formatTimeSeconds(totalSeconds);
+}
+
+function startTimerTicker() {
+  if (timerIntervalId) {
+    clearInterval(timerIntervalId);
+  }
+  timerIntervalId = setInterval(updateTimeDisplay, 100);
+  updateTimeDisplay();
+}
+
+function stopTimerTicker() {
+  if (timerIntervalId) {
+    clearInterval(timerIntervalId);
+    timerIntervalId = null;
+  }
+}
+
+function startCardTimer() {
+  cardStartTime = performance.now();
+  updateTimeDisplay();
+}
+
+function finalizeCardTimer(decision) {
+  const elapsedMs = getCurrentCardElapsedMs();
+  dayElapsedMs += elapsedMs;
+  const cardSeconds = roundToTenth(elapsedMs / 1000);
+  const totalSeconds = roundToTenth(dayElapsedMs / 1000);
+  if (decision) {
+    decision.timeSpent = cardSeconds;
+    decision.totalTime = totalSeconds;
+  }
+  cardStartTime = 0;
+  updateTimeDisplay();
+}
 
 function buildCards(count, rules) {
   const cardsList = [];
@@ -183,6 +242,14 @@ function pickRandom(list) {
   return list[Math.floor(Math.random() * list.length)];
 }
 
+function shuffleCards(list) {
+  for (let i = list.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [list[i], list[j]] = [list[j], list[i]];
+  }
+  return list;
+}
+
 function pickWeightedGrade(grades) {
   const weights = {
     A: 0.6,
@@ -197,6 +264,16 @@ function pickWeightedGrade(grades) {
     if (roll <= 0) return item.grade;
   }
   return pool[0].grade;
+}
+
+function buildDaySixCards() {
+  const cCards = buildCards(2, { series: ["C"], grades: ["A", "B", "C"] });
+  const abCards = buildCards(8, {
+    series: ["A", "B"],
+    grades: ["A", "B", "C"],
+    fakeCount: 1,
+  });
+  return shuffleCards([...cCards, ...abCards]);
 }
 
 function showScreen(screen) {
@@ -214,6 +291,7 @@ function startGame() {
   totalMistakes = 0;
   credibility = 100;
   gameOver = false;
+  dayStats.length = 0;
   setupDay();
   showScreen(gameScreen);
 }
@@ -231,11 +309,14 @@ function setupDay() {
   cardProgress.textContent = `0/${cards.length}`;
   dayTotalIncome = 0;
   dayTotalLoss = 0;
+  dayMistakes = 0;
+  dayElapsedMs = 0;
   updateStatsDisplay();
   resetDecision();
   updatePhoneAvailability();
   renderCard();
   openDayTip();
+  startTimerTicker();
 }
 
 function calculateTargetIncome(cardList) {
@@ -273,6 +354,7 @@ function renderCard() {
   document.getElementById("card-rarity").textContent = card.rarity;
   cardProgress.textContent = `${currentIndex + 1}/${cards.length}`;
   updateDecisionUI();
+  startCardTimer();
 }
 
 function updateDecisionUI() {
@@ -476,6 +558,7 @@ function completeCard() {
     alert("还没有完成判定或定价。");
     return;
   }
+  finalizeCardTimer(decision);
   if (card.isFake && decision.actualGrade !== "FAKE") {
     credibility = Math.max(0, credibility - 100);
     updateStatsDisplay();
@@ -490,6 +573,7 @@ function completeCard() {
     totalLoss += outcome.loss;
     if (outcome.mistake) {
       totalMistakes += 1;
+      dayMistakes += 1;
       if (applyCredibilityPenalty(10, "品相或定价判断失误")) {
         return;
       }
@@ -515,11 +599,26 @@ function completeCard() {
 
 function finishDay() {
   const diff = Math.abs(dayTotalIncome - dayTargetIncome);
+  dayStats[currentDay] = {
+    timeMs: dayElapsedMs,
+    mistakes: dayMistakes,
+    cards: cards.length,
+  };
   summaryTitle.textContent = `第 ${currentDay + 1} 天结算`;
   summaryBody.textContent = `今日估价 ${dayTotalIncome} ，系统目标 ${dayTargetIncome} ，差距 ${diff}。`;
-  if (currentDay === 6) {
-    summaryBody.textContent += "\nJHS APP 让你轻松完成了一天。";
+  if (currentDay === 5) {
+    summaryBody.textContent += "\n要是有地方能查到 C 系列的价格就好了……";
   }
+  if (currentDay === 6) {
+    const report = buildEfficiencyReport();
+    summaryBody.textContent += "\nJHS APP 让你轻松完成了一天。";
+    if (report) {
+      summaryBody.textContent += `\n小报告：用上 JHS APP 之后，你的效率提升了 ${report.efficiencyBoost}% ，错误率降低了 ${report.errorDrop}% 。`;
+    }
+  }
+  nextDayBtn.textContent = currentDay === 6 ? "谢谢 JHS" : "进入下一天";
+  closeOverlay();
+  stopTimerTicker();
   showScreen(summaryScreen);
 }
 
@@ -527,6 +626,7 @@ function triggerGameOver(title, body) {
   gameOver = true;
   summaryTitle.textContent = title;
   summaryBody.textContent = body;
+  stopTimerTicker();
   showScreen(summaryScreen);
 }
 
@@ -627,6 +727,37 @@ function updateStatsDisplay() {
   totalIncomeEl.textContent = `${totalIncome}`;
   totalLossEl.textContent = `${totalLoss}`;
   credibilityScore.textContent = `${credibility}`;
+  updateTimeDisplay();
+}
+
+function buildEfficiencyReport() {
+  const baselineDays = dayStats.slice(0, 6).filter(Boolean);
+  const daySeven = dayStats[6];
+  if (!daySeven || baselineDays.length === 0) return null;
+  const baseline = baselineDays.reduce(
+    (acc, day) => {
+      acc.timeMs += day.timeMs;
+      acc.mistakes += day.mistakes;
+      acc.cards += day.cards;
+      return acc;
+    },
+    { timeMs: 0, mistakes: 0, cards: 0 },
+  );
+  if (baseline.cards === 0) return null;
+  const baselineTimePerCard = baseline.timeMs / baseline.cards;
+  const baselineMistakeRate = baseline.mistakes / baseline.cards;
+  const daySevenTimePerCard = daySeven.timeMs / daySeven.cards;
+  const daySevenMistakeRate = daySeven.mistakes / daySeven.cards;
+  const efficiencyBoost = baselineTimePerCard
+    ? Math.max(0, (1 - daySevenTimePerCard / baselineTimePerCard) * 100)
+    : 0;
+  const errorDrop = baselineMistakeRate
+    ? Math.max(0, (1 - daySevenMistakeRate / baselineMistakeRate) * 100)
+    : 0;
+  return {
+    efficiencyBoost: efficiencyBoost.toFixed(1),
+    errorDrop: errorDrop.toFixed(1),
+  };
 }
 
 function openDayTip() {

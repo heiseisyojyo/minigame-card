@@ -36,6 +36,18 @@ main {
   display: block;
 }
 
+#summary-screen {
+  width: 100%;
+}
+
+#summary-screen.active {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  background: linear-gradient(180deg, #f3e9d7, #e8dac7);
+}
+
 .pixel-panel {
   background: var(--panel);
   border: 4px solid var(--accent);
@@ -733,9 +745,13 @@ main {
 
 @media (max-width: 900px) {
   #game-screen {
-    display: flex;
+    display: none;
     flex-direction: column;
     gap: 12px;
+  }
+
+  #game-screen.active {
+    display: flex;
   }
 
   #game-screen .desk {
