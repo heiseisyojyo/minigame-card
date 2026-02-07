@@ -4,7 +4,9 @@ const summaryScreen = document.getElementById("summary-screen");
 const dayNumber = document.getElementById("day-number");
 const dayGoal = document.getElementById("day-goal");
 const cardProgress = document.getElementById("card-progress");
-const dayIncome = document.getElementById("day-income");
+const mistakeCount = document.getElementById("mistake-count");
+const totalIncomeEl = document.getElementById("total-income");
+const totalLossEl = document.getElementById("total-loss");
 const dayTip = document.getElementById("day-tip");
 const cardEl = document.getElementById("card");
 const cardSeries = document.getElementById("card-series");
@@ -46,6 +48,13 @@ const phoneBtn = document.getElementById("phone-btn");
 const nextCardBtn = document.getElementById("next-card-btn");
 const confirmPriceBtn = document.getElementById("confirm-price");
 const nextDayBtn = document.getElementById("next-day-btn");
+const giveUpBtn = document.getElementById("give-up-btn");
+const giveUpPhoneBtn = document.getElementById("give-up-phone-btn");
+const tipModal = document.getElementById("tip-modal");
+const tipTitle = document.getElementById("tip-title");
+const tipBody = document.getElementById("tip-body");
+const tipGoal = document.getElementById("tip-goal");
+const tipCloseBtn = document.getElementById("tip-close");
 
 const gradeButtons = Array.from(document.querySelectorAll(".grade-btn"));
 
@@ -133,6 +142,10 @@ let decisions = [];
 let flipping = false;
 let dayTotalIncome = 0;
 let dayTargetIncome = 0;
+let dayTotalLoss = 0;
+let totalIncome = 0;
+let totalLoss = 0;
+let totalMistakes = 0;
 let gameOver = false;
 let currentPriceMap = null;
 
@@ -191,6 +204,10 @@ function showScreen(screen) {
 function startGame() {
   currentDay = 0;
   dayTotalIncome = 0;
+  dayTotalLoss = 0;
+  totalIncome = 0;
+  totalLoss = 0;
+  totalMistakes = 0;
   gameOver = false;
   setupDay();
   showScreen(gameScreen);
@@ -207,18 +224,18 @@ function setupDay() {
   dayGoal.textContent = config.goal;
   dayTip.textContent = config.tip;
   cardProgress.textContent = `0/${cards.length}`;
-  dayIncome.textContent = "0";
+  dayTotalIncome = 0;
+  dayTotalLoss = 0;
+  updateStatsDisplay();
   resetDecision();
   updatePhoneAvailability();
   renderCard();
+  openDayTip();
 }
 
 function calculateTargetIncome(cardList) {
   return cardList.reduce((sum, card) => {
-    if (card.series === "C" && card.grade !== "FAKE") {
-      return sum;
-    }
-    return sum + Math.round(card.basePrice * gradeMultiplier(card.grade));
+    return sum + actualMarketPrice(card);
   }, 0);
 }
 
@@ -228,6 +245,11 @@ function gradeMultiplier(grade) {
   if (grade === "C") return 0.65;
   if (grade === "FAKE") return 0;
   return 1;
+}
+
+function actualMarketPrice(card) {
+  if (card.grade === "FAKE") return 0;
+  return Math.round(card.basePrice * gradeMultiplier(card.grade));
 }
 
 function renderCard() {
@@ -252,7 +274,11 @@ function updateDecisionUI() {
   const decision = decisions[currentIndex] || {};
   decisionAuth.textContent = decision.auth ?? "未判定";
   decisionGrade.textContent = decision.grade ?? "未判定";
-  decisionPrice.textContent = decision.price != null ? `${decision.price}` : "未定价";
+  if (decision.giveUp) {
+    decisionPrice.textContent = "放弃";
+  } else {
+    decisionPrice.textContent = decision.price != null ? `${decision.price}` : "未定价";
+  }
   returnFakeBtn.classList.toggle("hidden", decision.actualGrade !== "FAKE");
 }
 
@@ -300,11 +326,12 @@ function openComputer() {
   updatePriceDisplay();
   priceGradeSelect.value = "A";
   updateSelectedPrice();
+  updateGiveUpButtons();
 }
 
 function lookupPrice(card) {
   if (card.series === "C") return null;
-  return Math.round(card.basePrice * gradeMultiplier(card.grade));
+  return actualMarketPrice(card);
 }
 
 function getGradePrices(card) {
@@ -324,6 +351,7 @@ function updatePriceDisplay() {
   priceA.textContent = formatPrice(currentPriceMap?.A ?? null);
   priceB.textContent = formatPrice(currentPriceMap?.B ?? null);
   priceC.textContent = formatPrice(currentPriceMap?.C ?? null);
+  confirmPriceBtn.disabled = !currentPriceMap;
 }
 
 function updateSelectedPrice() {
@@ -357,6 +385,7 @@ function openPhone() {
   phonePanel.classList.remove("hidden");
   computerPanel.classList.add("hidden");
   renderPhonePreview();
+  updateGiveUpButtons();
 }
 
 function updatePhoneAvailability() {
@@ -390,7 +419,7 @@ function closeOverlay() {
 function completeCard() {
   const decision = decisions[currentIndex];
   const card = cards[currentIndex];
-  if (!decision || decision.price == null || !decision.actualGrade) {
+  if (!decision || (!decision.giveUp && (decision.price == null || !decision.actualGrade))) {
     alert("还没有完成判定或定价。");
     return;
   }
@@ -398,6 +427,21 @@ function completeCard() {
     triggerGameOver();
     return;
   }
+  if (!decision.giveUp) {
+    const outcome = evaluateDecision(card, decision);
+    dayTotalIncome += outcome.income;
+    dayTotalLoss += outcome.loss;
+    totalIncome += outcome.income;
+    totalLoss += outcome.loss;
+    if (outcome.mistake) {
+      totalMistakes += 1;
+    }
+  } else {
+    const outcome = evaluateGiveUp(card);
+    dayTotalLoss += outcome.loss;
+    totalLoss += outcome.loss;
+  }
+  updateStatsDisplay();
   currentIndex += 1;
   if (currentIndex >= cards.length) {
     finishDay();
@@ -407,7 +451,6 @@ function completeCard() {
 }
 
 function finishDay() {
-  dayTotalIncome = calculateIncome(cards, decisions);
   const diff = Math.abs(dayTotalIncome - dayTargetIncome);
   summaryTitle.textContent = `第 ${currentDay + 1} 天结算`;
   summaryBody.textContent = `今日估价 ${dayTotalIncome} ，系统目标 ${dayTargetIncome} ，差距 ${diff}。`;
@@ -422,22 +465,6 @@ function triggerGameOver() {
   summaryTitle.textContent = "假卡入库，游戏结束";
   summaryBody.textContent = "你误买了假卡，店铺信誉受损。重新开始吧！";
   showScreen(summaryScreen);
-}
-
-function calculateIncome(cardList, decisionList) {
-  return cardList.reduce((sum, card, index) => {
-    const decision = decisionList[index];
-    if (!decision) return sum;
-    if (card.grade === "FAKE") {
-      return decision.actualGrade === "FAKE" ? sum : sum - 50;
-    }
-    const market = lookupPrice(card) ?? 0;
-    const diff = Math.abs(decision.price - market);
-    let factor = 1;
-    if (diff > market * 0.15) factor = 0.6;
-    else if (diff > market * 0.05) factor = 0.85;
-    return sum + Math.round(market * factor);
-  }, 0);
 }
 
 function nextDay() {
@@ -466,6 +493,61 @@ function returnFakeCard() {
   completeCard();
 }
 
+function evaluateDecision(card, decision) {
+  const market = actualMarketPrice(card);
+  const diff = Math.abs(decision.price - market);
+  let factor = 1;
+  if (diff > market * 0.15) factor = 0.6;
+  else if (diff > market * 0.05) factor = 0.85;
+  const income = Math.round(market * factor);
+  const loss = market - income;
+  const mistake = decision.actualGrade !== card.grade || decision.price !== market;
+  return { income, loss, mistake };
+}
+
+function evaluateGiveUp(card) {
+  return { loss: actualMarketPrice(card) };
+}
+
+function giveUpCard() {
+  const decision = decisions[currentIndex] || {};
+  decision.price = 0;
+  decision.grade = "放弃";
+  decision.auth = "放弃";
+  decision.giveUp = true;
+  decisions[currentIndex] = decision;
+  updateDecisionUI();
+  closeOverlay();
+  completeCard();
+}
+
+function updateGiveUpButtons() {
+  const card = cards[currentIndex];
+  const unavailable = card.series === "C" && card.grade !== "FAKE";
+  const computerVisible = !computerPanel.classList.contains("hidden");
+  const phoneVisible = !phonePanel.classList.contains("hidden");
+  giveUpBtn.classList.toggle("hidden", !unavailable || !computerVisible);
+  giveUpPhoneBtn.classList.toggle("hidden", !unavailable || !phoneVisible);
+}
+
+function updateStatsDisplay() {
+  mistakeCount.textContent = `${totalMistakes}`;
+  totalIncomeEl.textContent = `${totalIncome}`;
+  totalLossEl.textContent = `${totalLoss}`;
+}
+
+function openDayTip() {
+  const config = dayConfigs[currentDay];
+  tipTitle.textContent = `第 ${currentDay + 1} 天提示`;
+  tipBody.textContent = config.tip;
+  tipGoal.textContent = config.goal;
+  tipModal.classList.remove("hidden");
+}
+
+function closeDayTip() {
+  tipModal.classList.add("hidden");
+}
+
 startBtn.addEventListener("click", startGame);
 cardEl.addEventListener("click", flipCard);
 flipBtn.addEventListener("click", flipCard);
@@ -476,8 +558,14 @@ priceGradeSelect.addEventListener("change", updateSelectedPrice);
 nextCardBtn.addEventListener("click", completeCard);
 nextDayBtn.addEventListener("click", nextDay);
 returnFakeBtn.addEventListener("click", returnFakeCard);
+giveUpBtn.addEventListener("click", giveUpCard);
+giveUpPhoneBtn.addEventListener("click", giveUpCard);
+tipCloseBtn.addEventListener("click", closeDayTip);
 overlay.addEventListener("click", (event) => {
   if (event.target === overlay) closeOverlay();
+});
+tipModal.addEventListener("click", (event) => {
+  if (event.target === tipModal) closeDayTip();
 });
 
 gradeButtons.forEach((button) => {

@@ -24,7 +24,9 @@
           </div>
           <div class="stats">
             <div>进度：<span id="card-progress">0/0</span></div>
-            <div>今日收益：<span id="day-income">0</span></div>
+            <div>累计失误：<span id="mistake-count">0</span></div>
+            <div>总收益：<span id="total-income">0</span></div>
+            <div>累计损失：<span id="total-loss">0</span></div>
           </div>
         </header>
 
@@ -151,6 +153,7 @@
             </label>
             <p>选中价格：<span id="market-price">--</span></p>
             <button id="confirm-price" class="pixel-button">确认定价</button>
+            <button id="give-up-btn" class="pixel-button hidden">放弃买取</button>
           </div>
         </div>
 
@@ -183,6 +186,16 @@
               </div>
             </div>
           </div>
+          <button id="give-up-phone-btn" class="pixel-button hidden">放弃买取</button>
+        </div>
+      </div>
+
+      <div id="tip-modal" class="modal hidden">
+        <div class="pixel-panel modal-panel">
+          <h3 id="tip-title">第 1 天提示</h3>
+          <p id="tip-body">今日提示</p>
+          <p id="tip-goal">今日目标</p>
+          <button id="tip-close" class="pixel-button">开始今天</button>
         </div>
       </div>
     </main>
