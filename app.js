@@ -10,6 +10,8 @@ const cardEl = document.getElementById("card");
 const cardSeries = document.getElementById("card-series");
 const cardName = document.getElementById("card-name");
 const cardWear = document.getElementById("card-wear");
+const cardArtSeries = document.getElementById("card-art-series");
+const cardArtGrade = document.getElementById("card-art-grade");
 const decisionAuth = document.getElementById("decision-auth");
 const decisionGrade = document.getElementById("decision-grade");
 const decisionPrice = document.getElementById("decision-price");
@@ -170,9 +172,13 @@ function gradeMultiplier(grade) {
 function renderCard() {
   const card = cards[currentIndex];
   cardEl.classList.remove("back");
+  cardEl.dataset.series = card.series;
+  cardEl.dataset.grade = card.grade;
   cardSeries.textContent = seriesNames[card.series];
   cardName.textContent = card.name;
   cardWear.textContent = gradeWear[card.grade];
+  cardArtSeries.textContent = `${card.series} 系`;
+  cardArtGrade.textContent = card.grade === "FAKE" ? "假" : card.grade;
   document.getElementById("card-rarity").textContent = card.rarity;
   cardProgress.textContent = `${currentIndex + 1}/${cards.length}`;
   updateDecisionUI();
