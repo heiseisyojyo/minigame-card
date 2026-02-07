@@ -732,6 +732,20 @@ main {
 }
 
 @media (max-width: 900px) {
+  #game-screen {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  #game-screen .desk {
+    order: 1;
+  }
+
+  #game-screen .game-header {
+    order: 2;
+  }
+
   .desk {
     grid-template-columns: 1fr;
     gap: 12px;
