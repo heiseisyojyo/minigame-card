@@ -44,7 +44,6 @@ const phoneAiStatus = document.getElementById("phone-ai-status");
 const phoneAiResult = document.getElementById("phone-ai-result");
 
 const startBtn = document.getElementById("start-btn");
-const flipBtn = document.getElementById("flip-btn");
 const priceABtn = document.getElementById("price-a-btn");
 const priceBBtn = document.getElementById("price-b-btn");
 const phoneBtn = document.getElementById("phone-btn");
@@ -155,6 +154,9 @@ let currentPriceMap = null;
 let currentPriceStatus = "ok";
 let phoneScanComplete = false;
 let dayMistakes = 0;
+let dayGradeMistakes = 0;
+let dayPriceMistakes = 0;
+let dayCredibilityStart = 100;
 let dayElapsedMs = 0;
 let cardStartTime = 0;
 let timerIntervalId = null;
@@ -305,11 +307,14 @@ function setupDay() {
   dayTargetIncome = calculateTargetIncome(cards);
   dayNumber.textContent = currentDay + 1;
   dayGoal.textContent = config.goal;
-  dayTip.textContent = config.tip;
+  dayTip.textContent = `${config.tip}（点击卡片即可翻面）`;
   cardProgress.textContent = `0/${cards.length}`;
   dayTotalIncome = 0;
   dayTotalLoss = 0;
   dayMistakes = 0;
+  dayGradeMistakes = 0;
+  dayPriceMistakes = 0;
+  dayCredibilityStart = credibility;
   dayElapsedMs = 0;
   updateStatsDisplay();
   resetDecision();
@@ -580,6 +585,12 @@ function completeCard() {
     if (outcome.mistake) {
       totalMistakes += 1;
       dayMistakes += 1;
+      if (outcome.gradeMistake) {
+        dayGradeMistakes += 1;
+      }
+      if (outcome.priceMistake) {
+        dayPriceMistakes += 1;
+      }
       if (applyCredibilityPenalty(10, "品相或定价判断失误")) {
         return;
       }
@@ -612,6 +623,10 @@ function finishDay() {
   };
   summaryTitle.textContent = `第 ${currentDay + 1} 天结算`;
   summaryBody.textContent = `今日估价 ${dayTotalIncome} ，系统目标 ${dayTargetIncome} ，差距 ${diff}。`;
+  if (dayMistakes > 0) {
+    const credibilityLoss = Math.max(0, dayCredibilityStart - credibility);
+    summaryBody.textContent += `\n今日失误：看错了 ${dayGradeMistakes} 张卡的品相，算错了 ${dayPriceMistakes} 张卡的价格，亏损 ${dayTotalLoss} 元，顾客对牌店的信任下降了 ${credibilityLoss} 点。`;
+  }
   if (currentDay === 5) {
     summaryBody.textContent += "\n要是有地方能查到 Z 系列的价格就好了……";
   }
@@ -683,8 +698,10 @@ function evaluateDecision(card, decision) {
   else if (diff > market * 0.05) factor = 0.85;
   const income = Math.round(market * factor);
   const loss = market - income;
-  const mistake = decision.actualGrade !== card.grade || decision.price !== market;
-  return { income, loss, mistake };
+  const gradeMistake = decision.actualGrade !== card.grade;
+  const priceMistake = decision.price !== market;
+  const mistake = gradeMistake || priceMistake;
+  return { income, loss, mistake, gradeMistake, priceMistake };
 }
 
 function evaluateGiveUp(card) {
@@ -780,7 +797,6 @@ function closeDayTip() {
 
 startBtn.addEventListener("click", startGame);
 cardEl.addEventListener("click", flipCard);
-flipBtn.addEventListener("click", flipCard);
 priceABtn.addEventListener("click", () => openComputer("X"));
 priceBBtn.addEventListener("click", () => openComputer("Y"));
 phoneBtn.addEventListener("click", openPhone);
